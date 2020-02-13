@@ -6,15 +6,18 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.Storage.BlobField;
 import com.google.cloud.storage.StorageOptions;
 import dev.educosta.gcpfileuploader.storage.StorageService;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Map;
+import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,7 +28,6 @@ public class FileUploadController {
   // The name of the bucket to access
   String bucketName = "bucket-poc-upload-files";
 
-
   private final StorageService storageService;
 
   @Autowired
@@ -33,9 +35,35 @@ public class FileUploadController {
     this.storageService = storageService;
   }
 
+  @GetMapping(value = "/hello")
+  public String hello() {
+    return "HELLO";
+  }
+
   @GetMapping(value = "/file/metadata")
   public Map<BlobField, String> readMetadata(@RequestParam(value = "name") String filename) {
     return this.storageService.metadata(filename);
+  }
+
+  @GetMapping(value = "/file/image", produces = MediaType.IMAGE_JPEG_VALUE)
+  public byte[] readImage() throws IOException {
+    return readImageStream().readAllBytes();
+  }
+
+  @GetMapping(value = "/file/video", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+  public @ResponseBody
+  byte[] readVideo() throws IOException {
+    return readVideoStream().readAllBytes();
+  }
+
+  private InputStream readImageStream() {
+    InputStream imageInputStream = FileUploadController.class.getResourceAsStream("/icon.jpg");
+    return Objects.requireNonNull(imageInputStream);
+  }
+
+  private InputStream readVideoStream() {
+    InputStream imageInputStream = FileUploadController.class.getResourceAsStream("/video.mp4");
+    return Objects.requireNonNull(imageInputStream);
   }
 
   @DeleteMapping(value = "/file")
@@ -43,28 +71,19 @@ public class FileUploadController {
     this.storageService.delete(filename);
   }
 
+
   @PostMapping(value = "/file")
   public void upload(@RequestParam(name = "file") MultipartFile file) {
     storageService.store(file);
   }
 
 
-  public void download() {
-
-// The name of the remote file to download
-    String srcFilename = "file.txt";
-
-// The path to which the file should be downloaded
-    Path destFilePath = Paths.get("/local/path/to/file.txt");
-
-// Instantiate a Google Cloud Storage client
+  public void download(String srcFilename) {
     Storage storage = StorageOptions.getDefaultInstance().getService();
 
-// Get specific file from specified bucket
     Blob blob = storage.get(BlobId.of(bucketName, srcFilename));
+    blob.getContent();
 
-// Download file to specified path
-    blob.downloadTo(destFilePath);
   }
 
 

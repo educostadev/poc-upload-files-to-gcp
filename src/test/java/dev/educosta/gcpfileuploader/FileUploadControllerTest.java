@@ -43,7 +43,7 @@ class FileUploadControllerTest {
   @Test
   void readMetadata() throws Exception {
     ResultActions resultActions = mockMvc.perform(get("/v1/file/metadata")
-        .param("name", "dashboard.png")
+        .param("name", "icon.jpg")
         .contentType(MediaType.APPLICATION_JSON))
         .andDo(resultHandler ->
             logger.debug(resultHandler.getResponse().getContentAsString())
@@ -54,7 +54,7 @@ class FileUploadControllerTest {
 
   @Test
   void uploadImage() throws Exception {
-    String originalFileName = createFilename(".png");
+    String originalFileName = createFilename(".jpg");
 
     MockMultipartFile file = createImageFile(originalFileName);
 
@@ -66,7 +66,7 @@ class FileUploadControllerTest {
 
   @Test
   void deleteFile() throws Exception {
-    String originalFileName = createFilename(".png");
+    String originalFileName = createFilename(".jpg");
     uploadFile(createImageFile(originalFileName)).andExpect(status().isOk());
 
     ResultActions resultActions = mockMvc.perform(delete("/v1/file")
@@ -104,25 +104,15 @@ class FileUploadControllerTest {
   }
 
 
-  void uploadImageAntigo() throws Exception {
-
-    String fileName = "/icon.png";
-    InputStream inputStream = FileUploadControllerTest.class.getResourceAsStream(fileName);
-    String MEDIA_TYPE_VALUE = MediaType.IMAGE_PNG_VALUE;
-
-    MockMultipartFile file = new MockMultipartFile(fileName, "", MEDIA_TYPE_VALUE,
-        inputStream.readAllBytes());
-    ResultActions resultActions = mockMvc
-        .perform(MockMvcRequestBuilders.multipart("/v1/file")
-            .file("file", file.getBytes()));
-    //.characterEncoding("UTF-8"));
-
-    resultActions.andExpect(status().isOk());
+  private InputStream readImageStream() {
+    InputStream stream = FileUploadControllerTest.class.getResourceAsStream("/icon.jpg");
+    assertNotNull(stream);
+    return stream;
   }
 
-  private InputStream readImageStream() {
-    InputStream imageInputStream = FileUploadControllerTest.class.getResourceAsStream("/icon.png");
-    assertNotNull(imageInputStream);
-    return imageInputStream;
+  private InputStream readVideoStream() {
+    InputStream stream = FileUploadController.class.getResourceAsStream("/video.mp4");
+    assertNotNull(stream);
+    return Objects.requireNonNull(stream);
   }
 }
