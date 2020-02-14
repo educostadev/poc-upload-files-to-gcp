@@ -13,12 +13,15 @@ import com.google.cloud.storage.Storage.BlobListOption;
 import com.google.cloud.storage.StorageOptions;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -70,12 +73,19 @@ public class GoogleStorageService implements StorageService {
 
   @Override
   public Set<URL> loadAllURL(String directory) {
-    Set<URL> urls = new HashSet<>();
+    List<Blob> blobsL = getBlobsFrom(directory);
+    return blobsL.stream()
+        .map(this::signUrl)
+        .collect(Collectors.toSet());
+  }
+
+  private List<Blob> getBlobsFrom(String directory) {
     Page<Blob> blobs = storage.list(
         BUCKET_NAME, BlobListOption.currentDirectory(), BlobListOption.prefix(directory)
     );
-    blobs.iterateAll().forEach(b -> urls.add(signUrl(b)));
-    return urls;
+    List<Blob> blobsL = new ArrayList<>();
+    blobs.iterateAll().forEach(blobsL::add);
+    return blobsL;
   }
 
 

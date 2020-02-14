@@ -111,7 +111,7 @@ class FileUploadControllerTest {
     uploadFile(createImageFile(file2)).andExpect(status().isOk());
 
     ResultActions resultActions = mockMvc.perform(get("/v1/files")
-        .param("directory", folder)
+        .param("directory", folder+"/")
         .contentType(MediaType.APPLICATION_JSON))
         .andDo(resultHandler ->
             logger.debug("Signed URLs: " + resultHandler.getResponse().getContentAsString())

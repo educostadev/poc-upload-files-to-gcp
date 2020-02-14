@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.view.RedirectView;
 
 @RestController
 @RequestMapping("/v1")
@@ -49,8 +50,13 @@ public class FileUploadController {
     return this.storageService.loadAsURL(filename);
   }
 
+  @GetMapping(value = "/file/image-url-redirect", produces = MediaType.APPLICATION_JSON_VALUE)
+  public RedirectView readImageAsRedirectedURL(@RequestParam(value = "name") String filename) {
+    return new RedirectView(this.storageService.loadAsURL(filename).toString());
+  }
+
   @GetMapping(value = "/files", produces = MediaType.APPLICATION_JSON_VALUE)
-  public Set<URL> readURLs(@RequestParam(value = "directory") String directory){
+  public Set<URL> readURLs(@RequestParam(value = "directory") String directory) {
     return this.storageService.loadAllURL(directory);
   }
 
