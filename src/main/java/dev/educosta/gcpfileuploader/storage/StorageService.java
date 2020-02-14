@@ -1,10 +1,10 @@
 package dev.educosta.gcpfileuploader.storage;
 
 import com.google.cloud.storage.Storage.BlobField;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.stream.Stream;
-import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface StorageService {
@@ -13,11 +13,11 @@ public interface StorageService {
 
   void store(MultipartFile file);
 
-  Stream<Path> loadAll();
+  Stream<Path> loadAllURL(String path);
 
-  Path load(String filename);
+  byte[] load(String filename);
 
-  Resource loadAsResource(String filename);
+  URL loadAsURL(String filename);
 
   void delete(String filename);
 

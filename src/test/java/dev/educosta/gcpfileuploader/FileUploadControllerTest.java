@@ -1,14 +1,19 @@
 package dev.educosta.gcpfileuploader;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
 import java.util.UUID;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -53,6 +58,21 @@ class FileUploadControllerTest {
   }
 
   @Test
+  void readImageAsURL() throws Exception {
+    ResultActions resultActions = mockMvc.perform(get("/v1/file/image-url")
+        .param("name", "icon.jpg")
+        .contentType(MediaType.APPLICATION_JSON))
+        .andDo(resultHandler ->
+            logger.debug("Signed URL is here: "+resultHandler.getResponse().getContentAsString())
+        );
+
+    resultActions
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("http")))
+    ;
+  }
+
+  @Test
   void uploadImage() throws Exception {
     String originalFileName = createFilename(".jpg");
 
@@ -76,6 +96,50 @@ class FileUploadControllerTest {
     );
 
     resultActions.andExpect(status().isOk());
+  }
+
+  /**
+   * Read the icon.jpg from GCP. Also record the file locally for you see the result
+   */
+  @Test
+  void readImage() throws Exception {
+    ResultActions resultActions = mockMvc.perform(get("/v1/file/image-byte")
+        .param("name", "icon.jpg")
+        .contentType(MediaType.TEXT_PLAIN_VALUE))
+        .andDo(resultHandler -> {
+              String path = writeFile(resultHandler.getResponse().getContentAsByteArray(), ".jpg");
+              logger.debug("Image File recorded locally at: " + path);
+            }
+        );
+
+    resultActions
+        .andExpect(status().isOk())
+        .andExpect(content().contentType(MediaType.IMAGE_JPEG_VALUE))
+    ;
+  }
+
+  @Test
+  void readVideo() throws Exception {
+    ResultActions resultActions = mockMvc.perform(get("/v1/file/video-byte")
+        .param("name", "icon.jpg")
+        .contentType(MediaType.TEXT_PLAIN_VALUE))
+        .andDo(resultHandler -> {
+              String path = writeFile(resultHandler.getResponse().getContentAsByteArray(), ".mp4");
+              logger.debug("Video File recorded locally at: " + path);
+            }
+        );
+
+    resultActions
+        .andExpect(status().isOk())
+        .andExpect(content().contentType(MediaType.APPLICATION_OCTET_STREAM_VALUE))
+    ;
+  }
+
+  private String writeFile(byte[] bytes, String fileExtension) throws IOException {
+    File file = File.createTempFile(UUID.randomUUID().toString(), fileExtension);
+    FileOutputStream output = new FileOutputStream(file);
+    output.write(bytes);
+    return file.getAbsolutePath();
   }
 
   private MockMultipartFile createImageFile(String originalFileName) throws IOException {
@@ -110,9 +174,5 @@ class FileUploadControllerTest {
     return stream;
   }
 
-  private InputStream readVideoStream() {
-    InputStream stream = FileUploadController.class.getResourceAsStream("/video.mp4");
-    assertNotNull(stream);
-    return Objects.requireNonNull(stream);
-  }
+
 }

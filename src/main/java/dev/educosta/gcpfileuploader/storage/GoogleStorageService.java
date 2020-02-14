@@ -10,15 +10,14 @@ import com.google.cloud.storage.Storage.BlobField;
 import com.google.cloud.storage.Storage.BlobGetOption;
 import com.google.cloud.storage.StorageOptions;
 import java.io.IOException;
-import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.Date;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import javax.annotation.PostConstruct;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -68,30 +67,31 @@ public class GoogleStorageService implements StorageService {
   }
 
   @Override
-  public Stream<Path> loadAll() {
+  public Stream<Path> loadAllURL(String path) {
     return Stream.empty();
   }
 
+
   @Override
-  public Path load(String filename) {
-    return null;
+  public byte[] load(String filename) {
+    Blob blob = storage.get(BlobId.of(BUCKET_NAME, filename));
+    return blob.getContent();
   }
 
+  /**
+   * Signing a URL requires Credentials which implement ServiceAccountSigner. These can be set
+   * explicitly using the Storage.SignUrlOption.signWith(ServiceAccountSigner) option. If you don't,
+   * you could also pass a service account signer to StorageOptions, i.e.
+   * StorageOptions().newBuilder().setCredentials(ServiceAccountSignerCredentials). In this example,
+   * neither of these options are used, which means the following code only works when the
+   * credentials are defined via the environment variable GOOGLE_APPLICATION_CREDENTIALS, and those
+   * credentials are authorized to sign a URL. See the documentation for Storage.signUrl for more
+   * details.
+   */
   @Override
-  public Resource loadAsResource(String filename) {
-    try {
-      Path file = load(filename);
-      Resource resource = new UrlResource(file.toUri());
-      if (resource.exists() || resource.isReadable()) {
-        return resource;
-      } else {
-        throw new StorageFileNotFoundException(
-            "Could not read file: " + filename);
-
-      }
-    } catch (MalformedURLException e) {
-      throw new StorageFileNotFoundException("Could not read file: " + filename, e);
-    }
+  public URL loadAsURL(String filename) {
+    Blob blob = storage.get(BlobId.of(BUCKET_NAME, filename));
+    return blob.signUrl(15, TimeUnit.MINUTES, Storage.SignUrlOption.withV4Signature());
   }
 
 
