@@ -4,6 +4,7 @@ import com.google.cloud.storage.Storage.BlobField;
 import dev.educosta.gcpfileuploader.storage.StorageService;
 import java.net.URL;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -46,6 +47,11 @@ public class FileUploadController {
   @GetMapping(value = "/file/image-url", produces = MediaType.APPLICATION_JSON_VALUE)
   public URL readImageAsURL(@RequestParam(value = "name") String filename) {
     return this.storageService.loadAsURL(filename);
+  }
+
+  @GetMapping(value = "/files", produces = MediaType.APPLICATION_JSON_VALUE)
+  public Set<URL> readURLs(@RequestParam(value = "directory") String directory){
+    return this.storageService.loadAllURL(directory);
   }
 
   @GetMapping(value = "/file/video-byte", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)

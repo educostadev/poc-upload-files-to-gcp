@@ -2,21 +2,23 @@ package dev.educosta.gcpfileuploader.storage;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.api.gax.paging.Page;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.Storage.BlobField;
 import com.google.cloud.storage.Storage.BlobGetOption;
+import com.google.cloud.storage.Storage.BlobListOption;
 import com.google.cloud.storage.StorageOptions;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.file.Path;
 import java.util.Date;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 import javax.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -67,8 +69,13 @@ public class GoogleStorageService implements StorageService {
   }
 
   @Override
-  public Stream<Path> loadAllURL(String path) {
-    return Stream.empty();
+  public Set<URL> loadAllURL(String directory) {
+    Set<URL> urls = new HashSet<>();
+    Page<Blob> blobs = storage.list(
+        BUCKET_NAME, BlobListOption.currentDirectory(), BlobListOption.prefix(directory)
+    );
+    blobs.iterateAll().forEach(b -> urls.add(signUrl(b)));
+    return urls;
   }
 
 
@@ -90,7 +97,10 @@ public class GoogleStorageService implements StorageService {
    */
   @Override
   public URL loadAsURL(String filename) {
-    Blob blob = storage.get(BlobId.of(BUCKET_NAME, filename));
+    return signUrl(storage.get(BlobId.of(BUCKET_NAME, filename)));
+  }
+
+  private URL signUrl(Blob blob) {
     return blob.signUrl(15, TimeUnit.MINUTES, Storage.SignUrlOption.withV4Signature());
   }
 

@@ -1,10 +1,12 @@
 package dev.educosta.gcpfileuploader;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.io.File;
@@ -13,7 +15,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
 import java.util.UUID;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -63,7 +64,7 @@ class FileUploadControllerTest {
         .param("name", "icon.jpg")
         .contentType(MediaType.APPLICATION_JSON))
         .andDo(resultHandler ->
-            logger.debug("Signed URL is here: "+resultHandler.getResponse().getContentAsString())
+            logger.debug("Signed URL is here: " + resultHandler.getResponse().getContentAsString())
         );
 
     resultActions
@@ -96,6 +97,32 @@ class FileUploadControllerTest {
     );
 
     resultActions.andExpect(status().isOk());
+  }
+
+  @Test
+  void listURLs() throws Exception {
+    String folder =
+        FileUploadControllerTest.class.getSimpleName() + "/" + UUID.randomUUID().toString();
+
+    String file1 = createFilename(folder, ".jpg");
+    uploadFile(createImageFile(file1)).andExpect(status().isOk());
+
+    String file2 = createFilename(folder, ".jpg");
+    uploadFile(createImageFile(file2)).andExpect(status().isOk());
+
+    ResultActions resultActions = mockMvc.perform(get("/v1/files")
+        .param("directory", folder)
+        .contentType(MediaType.APPLICATION_JSON))
+        .andDo(resultHandler ->
+            logger.debug("Signed URLs: " + resultHandler.getResponse().getContentAsString())
+        );
+
+    resultActions
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$", hasSize(2)))
+        .andExpect(content().string(containsString("http")))
+    ;
+
   }
 
   /**
@@ -160,8 +187,12 @@ class FileUploadControllerTest {
   }
 
   private String createFilename(String extension) {
+    return this.createFilename(FileUploadControllerTest.class.getSimpleName(), extension);
+  }
+
+  private String createFilename(String folder, String extension) {
     return new StringBuilder()
-        .append(FileUploadControllerTest.class.getSimpleName())
+        .append(folder)
         .append("/")
         .append(UUID.randomUUID().toString())
         .append(extension).toString();
